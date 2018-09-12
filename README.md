@@ -7,20 +7,31 @@
 Inside the project repo, you will find the following file, scott_pellett_bird_challenge.zip
 
 Unzip the file. In the example below I am unzipping to /tmp:
+```
 unzip -o -d /tmp/ scott_pellett_bird_challenge.zip
+```
 
 Once the file is unzipped, from the directory that application was unzipped to run the following:
+```
 ./bird-0.1.0/bin/bird [optional - full path to file]
+```
 
-another example of the above command: ./bird-0.1.0/bin/bird ~/dev/test.txt 
+another example of the above command: 
+```
+./bird-0.1.0/bin/bird ~/dev/test.txt 
+```
 
 ### Using Docker:
 
-Pull down the image: 
+Pull down the image:
+```
 docker pull spellett/bird
+```
 
 Once the image is downloaded, run the following command:
+```
 run -v ~/dev:/data spellett/bird:v1 /data/test.txt
+```
 
 What the above command does is bindmounts a local directory with my test files, in this case ~/dev,
 to a new directory in the container called /data. That way I can pass files from that directory in
