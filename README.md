@@ -4,7 +4,7 @@
 
 ### Using .zip:
 
-Inside the project repo, you will find the following file, scott_pellett_bird_challenge.zip
+Inside the project repo, you will find the following file, scott\_pellett\_bird\_challenge.zip
 
 Unzip the file. In the example below I am unzipping to /tmp:
 ```
