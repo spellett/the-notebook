@@ -1,5 +1,38 @@
 # Bird Engineering: Coding Exercise
 
+## How to run:
+
+### Using .zip:
+
+Inside the project repo, you will find the following file, scott_pellett_bird_challenge.zip
+
+Unzip the file. In the example below I am unzipping to /tmp:
+unzip -o -d /tmp/ scott_pellett_bird_challenge.zip
+
+Once the file is unzipped, from the directory that application was unzipped to run the following:
+./bird-0.1.0/bin/bird [optional - full path to file]
+
+another example of the above command: ./bird-0.1.0/bin/bird ~/dev/test.txt 
+
+### Using Docker:
+
+Pull down the image: 
+docker pull spellett/bird
+
+Once the image is downloaded, run the following command:
+run -v ~/dev:/data spellett/bird:v1 /data/test.txt
+
+What the above command does is bindmounts a local directory with my test files, in this case ~/dev,
+to a new directory in the container called /data. That way I can pass files from that directory in
+the container to the application spellett/bird:v1
+
+### Notes:
+
+In the event that no file is passed in, the application will use the sample
+file given with the prompt.
+
+## Description
+
 Thank you for your continued interest in Bird!
 
 This at-home coding challenge is an opportunity for you to write some clean code that shows us how you use data structures to solve simple algorithmic problems.
