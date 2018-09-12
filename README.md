@@ -16,9 +16,14 @@ Once the file is unzipped, from the directory that application was unzipped to r
 ./bird-0.1.0/bin/bird [optional - full path to file]
 ```
 
-another example of the above command: 
+Another example of the above command using specific file: 
 ```
 ./bird-0.1.0/bin/bird ~/dev/test.txt 
+```
+
+Running w/ default file:
+```
+./bird-0.1.0/bin/bird
 ```
 
 ### Using Docker:
@@ -31,6 +36,11 @@ docker pull spellett/bird
 Once the image is downloaded, run the following command:
 ```
 run -v ~/dev:/data spellett/bird:v1 /data/test.txt
+```
+
+Running w/ default file:
+```
+run spellett/bird:v1
 ```
 
 What the above command does is bindmounts a local directory with my test files, in this case ~/dev,
