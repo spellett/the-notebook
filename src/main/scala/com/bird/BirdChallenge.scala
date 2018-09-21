@@ -6,7 +6,7 @@ import scala.io.Source
 import java.io.FileNotFoundException
 
 /**
- * Implementation of the Bird Interview Challenge.
+ * Nothing to see here.
  *
  * Author: Scott Pellett - spellett@gmail.com
  */
