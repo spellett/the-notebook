@@ -3,6 +3,8 @@ package com.bird
 import com.bird.helper.{LocationHelper, RideHelper}
 import com.bird.model._
 import scala.io.Source
+import com.typesafe.config.ConfigFactory
+import com.redis._
 import java.io.FileNotFoundException
 
 /**
@@ -11,6 +13,12 @@ import java.io.FileNotFoundException
  * Author: Scott Pellett - spellett@gmail.com
  */
 object BirdChallenge extends App {
+  val redisConfig = ConfigFactory.load().getConfig("redis")
+
+  val redisHost = redisConfig.getString("host")
+
+  val redisPort = redisConfig.getInt("port")
+
   // Event types
   val DROP = "DROP"
   val END_RIDE = "END_RIDE"
@@ -82,25 +90,12 @@ object BirdChallenge extends App {
   }
 
 
-  def getUserWithLargestBalance(users: List[User]): Unit = {
+  def getUserWithLargestBalance(cache: RedisClient): Unit = {
     println("4. Which user has paid the most? How much is it?")
 
-    if (users.isEmpty) {
-      println("No users rode any Birds")
-    }
-    else {
-      var maxSpend = 0.0
-      var topSpendingUser: String = ""
-
-      users.foreach {
-        user =>
-          if (user.balance >= maxSpend) {
-            maxSpend = user.balance
-            topSpendingUser = user.id.toString
-          }
-      }
-
-      println(s"Answer: $topSpendingUser has the highest balance at ${RideHelper.prettyCost(maxSpend)}\n")
+    cache.zrangeWithScore("spenders", 0, 0, RedisClient.DESC) match {
+      case Some(maxSpend) => println(s"Answer: ${maxSpend.head._1} has the highest balance at ${RideHelper.prettyCost(maxSpend.head._2)}\n")
+      case _ => println("No users rode any Birds")
     }
   }
 
@@ -119,6 +114,10 @@ object BirdChallenge extends App {
   var users = Map[Int, User]() // Holds all users in the simulation, keyed by user id
 
   try {
+    val cache = new RedisClient(redisHost, redisPort)
+
+    cache.set("birdcount", 0)
+
     // If no file is passed into the program, we will use the given example file
     // as the source of this run.
     val sourceFile = if (args.nonEmpty) {
@@ -149,6 +148,8 @@ object BirdChallenge extends App {
 
       event.event_type match {
         case DROP => {
+          cache.incr("birdcount")
+
           val bird = new Bird(event.bird_id, event.timestamp, Location(event.lat, event.lng))
 
           birds = birds + (event.bird_id -> bird)
@@ -174,7 +175,11 @@ object BirdChallenge extends App {
                   // Update the user's charges and rides taken
                   users.get(ride.user_id) match {
                     case Some(user) => {
-                      user.balance += RideHelper.getCost(rideDuration)
+                      cache.zscore("spenders", ride.user_id) match {
+                        case Some(existingSpend) => cache.zadd("spenders", (existingSpend + RideHelper.getCost(rideDuration)), ride.user_id)
+                        case _ => cache.zadd("spenders", RideHelper.getCost(rideDuration), ride.user_id)
+                      }
+                    
                       user.ridesTaken += 1
                     }
                     case _ => // Unknown user
@@ -224,7 +229,7 @@ object BirdChallenge extends App {
 
     // Question 1
     println("1. What is the total number of Bird vehicles dropped off in the simulation?")
-    println(s"Answer: ${birds.keySet.size} Birds were dropped off in the simulation\n")
+    println(s"Answer: ${cache.get("birdcount").getOrElse(0)} Birds were dropped off in the simulation\n")
 
     // Question 2
     getFurthestBirdFromOrigin(birds.values.toList)
@@ -233,7 +238,7 @@ object BirdChallenge extends App {
     getMostTravelledBird(birds.values.toList)
 
     // Question 4
-    getUserWithLargestBalance(users.values.toList)
+    getUserWithLargestBalance(cache)
 
     // Question 5
     println("5. Which Bird has the longest wait time between two rides? How many seconds is it?")

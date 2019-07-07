@@ -10,6 +10,8 @@ ThisBuild / organization := "com.bird"
 lazy val bird = (project in file("."))
   .enablePlugins(JavaAppPackaging)
   .settings(
-    name := "Bird",
+    name := "bird",
+    libraryDependencies ++= configDependencies,
+    libraryDependencies += redis,
     libraryDependencies += scalaTest % Test,
   )
