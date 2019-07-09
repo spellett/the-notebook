@@ -1,8 +1,9 @@
 package com.bird.helper
 
 import org.scalatest._
+import com.bird.common.LegacyUnitSpec
 
-class RideHelperTest extends FunSuite with DiagrammedAssertions {
+class RideHelperTest extends LegacyUnitSpec {
   test("Ride time 98 seconds = $1.30") {
     assert(RideHelper.prettyCost(RideHelper.getCost(98)) == "$1.30")
   }

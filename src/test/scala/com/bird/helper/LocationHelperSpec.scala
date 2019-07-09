@@ -1,15 +1,14 @@
 package com.bird.helper
 
 import com.bird.model.Location
-import com.bird.common.LegacyUnitSpec
 import org.scalatest._
 
-class LocationHelperTest extends LegacyUnitSpec {
-  test("Distance between (36.12, -86.67) and (33.94, -118.40)") {
+class LocationHelperSpec extends FlatSpec {
+  "A distance calculation" should "be accurate within a tenth of a mile (in meters)" in {
     val start = Location(36.12, -86.67)
     val end = Location(33.94, -118.40)
 
-    // Result is acceptable if it is within a tenth of a mile (in meters)
+    // a tenth of a mile (in meters)
     val dDistance = 160.934
 
     val actual = LocationHelper.getDistance(start, end)
