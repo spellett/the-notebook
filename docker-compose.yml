@@ -1,4 +1,4 @@
-version: '3'
+version: '3.2'
 
 services:
   rabbit:
@@ -17,3 +17,14 @@ services:
     container_name: "nbRedis"
     ports: 
       - "6379:6379"
+    volumes:
+      - type: bind
+        source: /Users/spellett/dev/test
+        target: /home
+  vault:
+    image: vault
+    cap_add:
+      - IPC_LOCK
+    container_name: "nbVault"
+    ports:
+      - "8200:8200"
