@@ -2,6 +2,7 @@ package com.bird
 
 import com.bird.helper.{LocationHelper, RideHelper}
 import com.bird.model._
+import com.bird.service.BirdService
 import scala.io.Source
 import com.typesafe.config.ConfigFactory
 import com.redis._
@@ -28,68 +29,6 @@ object BirdChallenge extends App with LazyLogging {
   val Missing = "NULL"
   
   val NoBirdsResponse = "Answer: No Birds dropped during the simulation\n"
-
-  def getAvgSpeedAcrossAllRides(birds: List[Bird], totalTravelDistance: Double, totalTravelDuration: Int): Unit = {
-    val totalRides = birds.foldLeft(0){(total, b) => total + b.totalRides}
-    val totalMiles = LocationHelper.convertMetersToMiles(totalTravelDistance)
-    val totalHours = (totalTravelDuration.toDouble / 3600.toDouble)
-
-    val avgMPH = (totalMiles / totalHours) / totalRides
-
-    logger.info("6. What is the average speed travelled across all rides?")
-    logger.info(s"Answer: The average speed across all rides was $avgMPH MPH")
-  }
-
-  def getFurthestBirdFromOrigin(birds: List[Bird]): Unit = {
-    logger.info("2. Which Bird ends up the farthest away from its drop location? What is the distance?")
-
-    if (birds.isEmpty) {
-      logger.info(NoBirdsResponse)
-    }
-    else {
-      var furthestDistance = 0.0
-      var furthestBirdId: String = ""
-
-      birds.foreach {
-        bird =>
-          // The distance the bird is from its' origin
-          val distance = LocationHelper.getDistance(bird.dropLocation, bird.currentLocation)
-
-          // In the event of a tie, the last Bird to be processed will be 
-          // determined "the furthest"
-          if (distance >= furthestDistance) {
-            furthestDistance = distance
-            furthestBirdId = bird.id
-          }
-      }
-
-      logger.info(s"Answer: $furthestBirdId is ${LocationHelper.convertMetersToMiles(furthestDistance)} mi away from its drop location\n")
-    }
-  }
-
-
-  def getMostTravelledBird(birds: List[Bird]): Unit = {
-    logger.info("3. Which Bird has traveled the longest distance in total on all of its rides? How far is it?")
-
-    if (birds.isEmpty) {
-      logger.info(NoBirdsResponse)
-    }
-    else {
-      var maxDistance = 0.0
-      var mostTravelledBirdId: String = ""
-
-      birds.foreach {
-        bird =>
-          if (bird.totalDistance >= maxDistance) {
-            maxDistance = bird.totalDistance
-            mostTravelledBirdId = bird.id
-          }
-      }
-
-      logger.info(s"Answer: $mostTravelledBirdId is the most travelled at a distance of ${LocationHelper.convertMetersToMiles(maxDistance)} mi\n")
-    }
-  }
-
 
   def getUserWithLargestBalance(cache: RedisClient): Unit = {
     logger.info("4. Which user has paid the most? How much is it?")
@@ -233,10 +172,20 @@ object BirdChallenge extends App with LazyLogging {
     logger.info(s"Answer: ${cache.get("birdcount").getOrElse(0)} Birds were dropped off in the simulation\n")
 
     // Question 2
-    getFurthestBirdFromOrigin(birds.values.toList)
+    logger.info("2. Which Bird ends up the farthest away from its drop location? What is the distance?")
+
+    BirdService.getFurthestBirdFromOrigin(birds.values.toList) match {
+      case Some(bird) => logger.info(s"Answer: ${bird.id} is ${bird.distance} mi away from its drop location\n")
+      case _ => logger.info(NoBirdsResponse)
+    }
 
     // Question 3
-    getMostTravelledBird(birds.values.toList)
+    logger.info("3. Which Bird has traveled the longest distance in total on all of its rides? How far is it?")
+    
+    BirdService.getMostTravelledBird(birds.values.toList) match {
+      case Some(bird) => logger.info(s"Answer: ${bird.id} is the most travelled at a distance of ${bird.distance} mi\n")
+      case _ => logger.info(NoBirdsResponse)
+    }
 
     // Question 4
     getUserWithLargestBalance(cache)
@@ -246,7 +195,10 @@ object BirdChallenge extends App with LazyLogging {
     logger.info(s"Answer: $maxDowntimeBird had the longest idle time between rides at $maxDowntime seconds\n")
 
     // Question 6
-    getAvgSpeedAcrossAllRides(birds.values.toList, totalTravelDistance, totalTravelDuration)
+    logger.info("6. What is the average speed travelled across all rides?")
+
+    val avgMPH = BirdService.getAvgSpeedAcrossAllRides(birds.values.toList, totalTravelDistance, totalTravelDuration)
+    logger.info(s"Answer: The average speed across all rides was $avgMPH MPH")
   }
   catch {
     case fnf: FileNotFoundException => logger.info("Unable to find requested file. Please check your path")
