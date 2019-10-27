@@ -6,13 +6,14 @@ import scala.io.Source
 import com.typesafe.config.ConfigFactory
 import com.redis._
 import java.io.FileNotFoundException
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Nothing to see here.
  *
  * Author: Scott Pellett - spellett@gmail.com
  */
-object BirdChallenge extends App {
+object BirdChallenge extends App with LazyLogging {
   val redisConfig = ConfigFactory.load().getConfig("redis")
 
   val redisHost = redisConfig.getString("host")
@@ -20,13 +21,13 @@ object BirdChallenge extends App {
   val redisPort = redisConfig.getInt("port")
 
   // Event types
-  val DROP = "DROP"
-  val END_RIDE = "END_RIDE"
-  val START_RIDE = "START_RIDE"
+  val Drop = "DROP"
+  val EndRide = "END_RIDE"
+  val StartRide = "START_RIDE"
 
-  val MISSING = "NULL"
+  val Missing = "NULL"
   
-  val NO_BIRDS_RESPONSE = "Answer: No Birds dropped during the simulation\n"
+  val NoBirdsResponse = "Answer: No Birds dropped during the simulation\n"
 
   def getAvgSpeedAcrossAllRides(birds: List[Bird], totalTravelDistance: Double, totalTravelDuration: Int): Unit = {
     val totalRides = birds.foldLeft(0){(total, b) => total + b.totalRides}
@@ -35,15 +36,15 @@ object BirdChallenge extends App {
 
     val avgMPH = (totalMiles / totalHours) / totalRides
 
-    println("6. What is the average speed travelled across all rides?")
-    println(s"Answer: The average speed across all rides was $avgMPH MPH")
+    logger.info("6. What is the average speed travelled across all rides?")
+    logger.info(s"Answer: The average speed across all rides was $avgMPH MPH")
   }
 
   def getFurthestBirdFromOrigin(birds: List[Bird]): Unit = {
-    println("2. Which Bird ends up the farthest away from its drop location? What is the distance?")
+    logger.info("2. Which Bird ends up the farthest away from its drop location? What is the distance?")
 
     if (birds.isEmpty) {
-      println(NO_BIRDS_RESPONSE)
+      logger.info(NoBirdsResponse)
     }
     else {
       var furthestDistance = 0.0
@@ -62,16 +63,16 @@ object BirdChallenge extends App {
           }
       }
 
-      println(s"Answer: $furthestBirdId is ${LocationHelper.convertMetersToMiles(furthestDistance)} mi away from its drop location\n")
+      logger.info(s"Answer: $furthestBirdId is ${LocationHelper.convertMetersToMiles(furthestDistance)} mi away from its drop location\n")
     }
   }
 
 
   def getMostTravelledBird(birds: List[Bird]): Unit = {
-    println("3. Which Bird has traveled the longest distance in total on all of its rides? How far is it?")
+    logger.info("3. Which Bird has traveled the longest distance in total on all of its rides? How far is it?")
 
     if (birds.isEmpty) {
-      println(NO_BIRDS_RESPONSE)
+      logger.info(NoBirdsResponse)
     }
     else {
       var maxDistance = 0.0
@@ -85,17 +86,17 @@ object BirdChallenge extends App {
           }
       }
 
-      println(s"Answer: $mostTravelledBirdId is the most travelled at a distance of ${LocationHelper.convertMetersToMiles(maxDistance)} mi\n")
+      logger.info(s"Answer: $mostTravelledBirdId is the most travelled at a distance of ${LocationHelper.convertMetersToMiles(maxDistance)} mi\n")
     }
   }
 
 
   def getUserWithLargestBalance(cache: RedisClient): Unit = {
-    println("4. Which user has paid the most? How much is it?")
+    logger.info("4. Which user has paid the most? How much is it?")
 
     cache.zrangeWithScore("spenders", 0, 0, RedisClient.DESC) match {
-      case Some(maxSpend) => println(s"Answer: ${maxSpend.head._1} has the highest balance at ${RideHelper.prettyCost(maxSpend.head._2)}\n")
-      case _ => println("No users rode any Birds")
+      case Some(maxSpend) => logger.info(s"Answer: ${maxSpend.head._1} has the highest balance at ${RideHelper.prettyCost(maxSpend.head._2)}\n")
+      case _ => logger.info("No users rode any Birds")
     }
   }
 
@@ -140,21 +141,21 @@ object BirdChallenge extends App {
       // "NULL" is passed as the value which cannot be converted into an Int so
       // we test for this value and turn our user id into Option[Int]
       val userId = data(5) match {
-        case uid: String if uid != MISSING => Option(uid.toInt)
+        case uid: String if uid != Missing => Option(uid.toInt)
         case _ => None
       }
 
       val event = Event(data(0).toInt, data(1), data(2), data(3).toDouble, data(4).toDouble, userId)
 
       event.event_type match {
-        case DROP => {
+        case Drop => {
           cache.incr("birdcount")
 
           val bird = new Bird(event.bird_id, event.timestamp, Location(event.lat, event.lng))
 
           birds = birds + (event.bird_id -> bird)
         }
-        case END_RIDE => {
+        case EndRide => {
           birds.get(event.bird_id) match {
             case Some(bird) => {
               // Update the bird's geocoordinates
@@ -194,7 +195,7 @@ object BirdChallenge extends App {
             case _ => // If this happens then that means we did no log the Bird dropping into the system
           }
         }
-        case START_RIDE => {
+        case StartRide => {
           event.user_id match {
             case Some(uid) => {
               // Add user to the system if they've never ridden before
@@ -228,8 +229,8 @@ object BirdChallenge extends App {
     }
 
     // Question 1
-    println("1. What is the total number of Bird vehicles dropped off in the simulation?")
-    println(s"Answer: ${cache.get("birdcount").getOrElse(0)} Birds were dropped off in the simulation\n")
+    logger.info("1. What is the total number of Bird vehicles dropped off in the simulation?")
+    logger.info(s"Answer: ${cache.get("birdcount").getOrElse(0)} Birds were dropped off in the simulation\n")
 
     // Question 2
     getFurthestBirdFromOrigin(birds.values.toList)
@@ -241,14 +242,14 @@ object BirdChallenge extends App {
     getUserWithLargestBalance(cache)
 
     // Question 5
-    println("5. Which Bird has the longest wait time between two rides? How many seconds is it?")
-    println(s"Answer: $maxDowntimeBird had the longest idle time between rides at $maxDowntime seconds\n")
+    logger.info("5. Which Bird has the longest wait time between two rides? How many seconds is it?")
+    logger.info(s"Answer: $maxDowntimeBird had the longest idle time between rides at $maxDowntime seconds\n")
 
     // Question 6
     getAvgSpeedAcrossAllRides(birds.values.toList, totalTravelDistance, totalTravelDuration)
   }
   catch {
-    case fnf: FileNotFoundException => println("Unable to find requested file. Please check your path")
-    case ex: Exception => println(ex.toString)
+    case fnf: FileNotFoundException => logger.info("Unable to find requested file. Please check your path")
+    case ex: Exception => logger.info(ex.toString)
   }
 }
