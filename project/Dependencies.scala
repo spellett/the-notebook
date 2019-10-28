@@ -1,6 +1,13 @@
 import sbt._
 
 object Dependencies {
+  // Akka
+  val akkaVersion = "2.5.26"
+
+  val akkaDependencies = Seq(
+    "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+    "com.typesafe.akka" %% "akka-stream" % akkaVersion
+  )
   
   // Cache
   val redis = "net.debasishg" %% "redisclient" % "3.7"
@@ -11,7 +18,7 @@ object Dependencies {
   )
 
   // JSON
-  lazy val circeVersion = "0.11.1"
+  val circeVersion = "0.11.1"
 
   val jsonDependencies = Seq(
     "io.circe" %% "circe-core" % circeVersion,

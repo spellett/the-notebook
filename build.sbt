@@ -21,6 +21,7 @@ lazy val bird = (project in file("."))
   .settings(
     name := "bird",
     commonSettings,
+    libraryDependencies ++= akkaDependencies,
     libraryDependencies += redis,
     libraryDependencies += scalaTest % Test,
   )
